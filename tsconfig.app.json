@@ -14,5 +14,5 @@
     "moduleResolution": "Bundler",
     "isolatedModules": true
   },
-  "include": ["src", "app"]
+  "include": ["src", "app/page.tsx", "app/firebase.ts"]
 }
