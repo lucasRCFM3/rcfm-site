@@ -6,7 +6,7 @@ import { ArrowDownAZ, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Downloa
 import { db } from "./firebase";
 import "./launcher.css";
 
-type Game = { id:string; parentId:string; title:string; coverUrl?:string; heroUrl?:string; genres?:string; version?:string; patch?:string; sizeBytes?:number; isOutdated?:boolean; typeck?:"OnlineFix"|"Hypervisor"|"Nenhum"; installerUrl?:string };
+type Game = { id:string; parentId:string; title:string; coverUrl?:string; heroUrl?:string; genres?:string; version?:string; patch?:string; sizeBytes?:number; isOutdated?:boolean; typeck:"OnlineFix"|"Hypervisor"|"Nenhum"; installerUrl?:string };
 type Page = "home"|"catalog"|"library";
 type Filter = "all"|"onlinefix"|"hypervisor"|"normal";
 type Sort = "title-asc"|"title-desc"|"onlinefix-first"|"hypervisor-first"|"normal-first";

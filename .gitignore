@@ -13,10 +13,10 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/.vinext/
-/out/
+# build output
+/dist/
+/.wrangler/
+/outputs/
 
 # misc
 .DS_Store
@@ -35,8 +35,4 @@ yarn-error.log*
 .vercel
 
 # typescript
-next-env.d.ts
-/dist/
-/.wrangler/
-/outputs/
-/work/
+*.tsbuildinfo
