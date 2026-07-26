@@ -239,12 +239,18 @@ export default function HomePage() {
     setSelected(null);
     if (window.history.state?.rcfmCatalogNavigation) {
       window.history.back();
-    } else if (currentRoutePath() !== "/") {
-      window.history.replaceState({}, "", "/");
+    } else {
+      const targetPath = page === "catalog" ? "/catalogo" : "/";
+      if (currentRoutePath() !== targetPath) {
+        window.history.replaceState({}, "", targetPath);
+      }
     }
   };
   const switchPage = (next: Page) => {
-    if (currentRoutePath() !== "/") window.history.pushState({}, "", "/");
+    const targetPath = next === "catalog" ? "/catalogo" : "/";
+    if (currentRoutePath() !== targetPath) {
+      window.history.pushState({}, "", targetPath);
+    }
     setPage(next);
     setSelected(null);
   };
@@ -252,8 +258,14 @@ export default function HomePage() {
   useEffect(() => {
     const syncGameFromUrl = () => {
       const path = currentRoutePath();
+      if (path === "/catalogo") {
+        setSelected(null);
+        setPage("catalog");
+        return;
+      }
       if (path === "/") {
         setSelected(null);
+        setPage("home");
         return;
       }
 
