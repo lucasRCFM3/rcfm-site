@@ -567,6 +567,13 @@ function GameCard({
     setActiveIndex((index) => (index + direction + versions.length) % versions.length);
   };
 
+  const isInstalledEmpty = !game.installedDlcs?.length || (game.installedDlcs.length === 1 && game.installedDlcs[0] === '0');
+  const isMissingEmpty = !game.missingDlcs?.length || (game.missingDlcs.length === 1 && game.missingDlcs[0] === '0');
+  const hasDlcData = !isInstalledEmpty || !isMissingEmpty;
+
+  const sortedInstalledDlcs = game.installedDlcs ? [...game.installedDlcs].sort((a, b) => a.localeCompare(b)) : [];
+  const sortedMissingDlcs = game.missingDlcs ? [...game.missingDlcs].sort((a, b) => a.localeCompare(b)) : [];
+
   return (
     <article className="launcher-game-card">
       <div className="launcher-cover">
@@ -609,15 +616,52 @@ function GameCard({
         )}
         {game.sizeBytes && <b className="size-tag">{formatBytes(game.sizeBytes)}</b>}
       </div>
-      <button className="card-info card-info-button" type="button" onClick={() => onOpen(game)}>
+      <div className="card-info" onClick={() => onOpen(game)}>
         <h3>{game.title}</h3>
         <p>
-          <span>Disponível</span>
-          {game.version && <><i>•</i>{game.version}</>}
-          {game.patch && <><i>•</i><b className={`patch-status ${patchClass}`}>{game.patch}</b></>}
+          {game.version && <span>{game.version}</span>}
+          {game.version && game.patch && <i>•</i>}
+          {game.patch && <span>Patch: <b className={`patch-status ${patchClass}`}>{game.patch}</b></span>}
         </p>
         {game.genres && <small>{game.genres}</small>}
-      </button>
+        
+        <div className="dlc-badges-container">
+          {!hasDlcData ? (
+            <div className="dlc-badge all-included">
+              Sem DLCs
+            </div>
+          ) : (
+            <>
+              {!isInstalledEmpty && game.installedDlcs && (
+                <div className="dlc-badge installed">
+                  {game.installedDlcs.length} Inclusas
+                  <div className="dlc-tooltip">
+                    <div className="dlc-tooltip-header">DLCs Inclusas</div>
+                    <ul>
+                      {sortedInstalledDlcs.map((dlc, i) => <li key={i}>{dlc}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              )}
+              {isMissingEmpty ? (
+                <div className="dlc-badge all-included">
+                  Nenhuma Faltando
+                </div>
+              ) : game.missingDlcs && (
+                <div className="dlc-badge missing">
+                  {game.missingDlcs.length} Faltando
+                  <div className="dlc-tooltip">
+                    <div className="dlc-tooltip-header">DLCs Faltantes</div>
+                    <ul>
+                      {sortedMissingDlcs.map((dlc, i) => <li key={i}>{dlc}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </article>
   );
 }
