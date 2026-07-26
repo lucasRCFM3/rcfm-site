@@ -96,15 +96,10 @@ const catalogIdentity = (game: Game) =>
 const releaseIdentity = (game: Game) =>
   `${catalogIdentity(game)}\u0000${game.version?.trim() ?? ""}\u0000${game.patch?.trim() ?? ""}`;
 
-const gameRoutePart = (value: string | undefined, fallback: string) =>
-  encodeURIComponent((value?.trim() || fallback).replace(/\s+/g, "-"));
-
-const gameRoutePath = (game: Game) =>
-  `/${[
-    gameRoutePart(game.appId || game.parentId, "jogo"),
-    gameRoutePart(game.version, "sem-versao"),
-    gameRoutePart(game.patch, "sem-patch"),
-  ].join("_")}`;
+const gameRoutePath = (game: Game) => `/${encodeURIComponent(
+  game.id.trim()
+  || [game.appId || game.parentId, game.version || "sem-versao", game.patch || "sem-patch"].join("_"),
+)}`;
 
 const currentRoutePath = () => {
   const path = window.location.pathname.replace(/\/+$/, "");
