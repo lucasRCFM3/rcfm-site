@@ -213,10 +213,10 @@ export default function HomePage() {
             publisher: typeof data.publisher === "string" ? data.publisher : undefined,
             releaseDate: typeof data.releaseDate === "string" ? data.releaseDate : undefined,
             shortDescription: typeof data.shortDescription === "string" ? data.shortDescription : undefined,
-            screenshots: Array.isArray(data.screenshots) ? data.screenshots.filter((s: unknown): s is string => typeof s === "string") : undefined,
-            trailers: Array.isArray(data.trailers) ? data.trailers.filter((t: unknown): t is string => typeof t === "string") : undefined,
-            installedDlcs: Array.isArray(data.installedDlcs) ? data.installedDlcs.filter((s: unknown): s is string => typeof s === "string") : undefined,
-            missingDlcs: Array.isArray(data.missingDlcs) ? data.missingDlcs.filter((s: unknown): s is string => typeof s === "string") : undefined,
+            screenshots: Array.isArray(data.screenshots) ? data.screenshots.filter((s: unknown): s is string => typeof s === "string" && s.trim() !== "") : undefined,
+            trailers: Array.isArray(data.trailers) ? data.trailers.filter((t: unknown): t is string => typeof t === "string" && t.trim() !== "") : undefined,
+            installedDlcs: Array.isArray(data.installedDlcs) ? data.installedDlcs.filter((s: unknown): s is string => typeof s === "string" && s.trim() !== "") : undefined,
+            missingDlcs: Array.isArray(data.missingDlcs) ? data.missingDlcs.filter((s: unknown): s is string => typeof s === "string" && s.trim() !== "") : undefined,
           } satisfies Game;
         });
       setGameGroups(groupCatalogVersions(records));
@@ -737,6 +737,11 @@ function GameDetails({ game, onBack }: { game: Game; onBack: () => void }) {
     }
   };
 
+  const [dlcSearch, setDlcSearch] = useState("");
+
+  const filteredInstalledDlcs = (game.installedDlcs || []).filter(dlc => dlc.toLowerCase().includes(dlcSearch.toLowerCase()));
+  const filteredMissingDlcs = (game.missingDlcs || []).filter(dlc => dlc.toLowerCase().includes(dlcSearch.toLowerCase()));
+
   return (
     <section className="web-game-page">
       <div
@@ -768,16 +773,18 @@ function GameDetails({ game, onBack }: { game: Game; onBack: () => void }) {
             {/* DLC Wing - Left */}
             <details open className="steam-dlc-section" style={{ position: 'absolute', top: 0, right: '100%', marginRight: '20px', width: '340px', background: 'rgba(0,0,0,0.4)', borderRadius: '6px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
               <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#6ee7a0', outline: 'none', userSelect: 'none', fontSize: '20px' }}>DLCs Ativas ({game.installedDlcs?.length || 0})</summary>
+              <input type="text" placeholder="Buscar DLC..." value={dlcSearch} onChange={(e) => setDlcSearch(e.target.value)} style={{ width: '100%', marginTop: '16px', padding: '8px 12px', borderRadius: '4px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', outline: 'none' }} />
               <ul style={{ marginTop: '24px', paddingLeft: '24px', color: '#c6d4df', fontSize: '18px', listStyleType: 'disc' }}>
-                {(game.installedDlcs || []).map(dlc => <li key={dlc} style={{ marginBottom: '40px', lineHeight: '1.4', fontWeight: 'bold' }}>{dlc}</li>)}
+                {filteredInstalledDlcs.map(dlc => <li key={dlc} style={{ marginBottom: '40px', lineHeight: '1.4', fontWeight: 'bold' }}>{dlc}</li>)}
               </ul>
             </details>
 
             {/* DLC Wing - Right */}
             <details open className="steam-dlc-section" style={{ position: 'absolute', top: 0, left: '100%', marginLeft: '20px', width: '340px', background: 'rgba(0,0,0,0.4)', borderRadius: '6px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
               <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#ff8f8f', outline: 'none', userSelect: 'none', fontSize: '20px' }}>DLCs Faltantes ({game.missingDlcs?.length || 0})</summary>
+              <input type="text" placeholder="Buscar DLC..." value={dlcSearch} onChange={(e) => setDlcSearch(e.target.value)} style={{ width: '100%', marginTop: '16px', padding: '8px 12px', borderRadius: '4px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', outline: 'none' }} />
               <ul style={{ marginTop: '24px', paddingLeft: '24px', color: '#c6d4df', fontSize: '18px', listStyleType: 'disc' }}>
-                {(game.missingDlcs || []).map(dlc => <li key={dlc} style={{ marginBottom: '40px', lineHeight: '1.4', fontWeight: 'bold' }}>{dlc}</li>)}
+                {filteredMissingDlcs.map(dlc => <li key={dlc} style={{ marginBottom: '40px', lineHeight: '1.4', fontWeight: 'bold' }}>{dlc}</li>)}
               </ul>
             </details>
 
@@ -791,6 +798,7 @@ function GameDetails({ game, onBack }: { game: Game; onBack: () => void }) {
                     autoPlay
                     loop
                     muted
+                    controls
                   />
                 ) : (
                   <img src={selectedMedia.url} className="web-steam-video-fallback" alt="Media" />
