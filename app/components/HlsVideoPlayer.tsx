@@ -23,6 +23,11 @@ export const HlsVideoPlayer: React.FC<HlsVideoPlayerProps> = ({ src, ...props })
         });
         hls.loadSource(src);
         hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (props.autoPlay) {
+            video.play().catch((err) => console.warn("Autoplay prevented by browser:", err));
+          }
+        });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS support (Safari)
         video.src = src;
