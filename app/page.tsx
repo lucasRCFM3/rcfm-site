@@ -23,8 +23,10 @@ import {
   Users,
   Wrench,
   X,
+  MoreHorizontal,
 } from "lucide-react";
 import { db } from "./firebase";
+import { HlsVideoPlayer } from "./components/HlsVideoPlayer";
 import "./launcher.css";
 
 type Game = {
@@ -41,6 +43,7 @@ type Game = {
   isOutdated?: boolean;
   typeck: "OnlineFix" | "Hypervisor" | "Nenhum";
   installerUrl?: string;
+  trailerUrl?: string;
 };
 
 type GameGroup = {
@@ -163,6 +166,11 @@ export default function HomePage() {
   const [selected, setSelected] = useState<Game | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
 
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [showTrailer, setShowTrailer] = useState(false);
+  const [isHoveringBanner, setIsHoveringBanner] = useState(false);
+  const [featuredGamesList, setFeaturedGamesList] = useState<Game[]>([]);
+
   useEffect(() => onSnapshot(
     collectionGroup(db, "versions"),
     (snapshot) => {
@@ -190,6 +198,7 @@ export default function HomePage() {
               ? data.typeck
               : "Nenhum",
             installerUrl: installerLink(data),
+            trailerUrl: typeof data.trailerUrl === "string" ? data.trailerUrl : undefined,
           } satisfies Game;
         });
       setGameGroups(groupCatalogVersions(records));
@@ -286,6 +295,30 @@ export default function HomePage() {
     return () => window.removeEventListener("popstate", syncGameFromUrl);
   }, [gameGroups, loading]);
 
+  useEffect(() => {
+    if (featuredGamesList.length === 0 && gameGroups.length > 0) {
+      const allGames = gameGroups.map(g => g.versions[0]);
+      const list = allGames.filter(g => g.heroUrl);
+      if (list.length === 0) {
+        const fallback = allGames[0];
+        setFeaturedGamesList(fallback ? [fallback] : []);
+        return;
+      }
+      const shuffled = [...list].sort(() => 0.5 - Math.random());
+      setFeaturedGamesList(shuffled.slice(0, 3));
+    }
+  }, [gameGroups, featuredGamesList.length]);
+
+  const featuredGame = featuredGamesList[currentBannerIndex];
+
+  useEffect(() => {
+    if (isHoveringBanner && featuredGame?.trailerUrl) {
+      setShowTrailer(true);
+    } else {
+      setShowTrailer(false);
+    }
+  }, [isHoveringBanner, currentBannerIndex, featuredGame?.trailerUrl]);
+
   return (
     <div className={`launcher-shell ${collapsed ? "is-collapsed" : ""}`}>
       <aside className="launcher-sidebar">
@@ -324,7 +357,65 @@ export default function HomePage() {
       </aside>
 
       <main className="launcher-main">
-        {page === "home" && <section className="launcher-empty large">BANNER CENTRAL / HOME</section>}
+        {page === "home" && (
+          <div className="home-container">
+            {featuredGame && (
+              <section 
+                className="hero-banner" 
+                style={{ backgroundImage: `url('${featuredGame.heroUrl || featuredGame.coverUrl}')` }}
+                onMouseEnter={() => setIsHoveringBanner(true)}
+                onMouseLeave={() => setIsHoveringBanner(false)}
+              >
+                {showTrailer && featuredGame.trailerUrl && (
+                  <HlsVideoPlayer 
+                    className={`hero-video ${showTrailer ? 'active' : ''}`} 
+                    src={featuredGame.trailerUrl} 
+                    autoPlay 
+                    loop 
+                    muted 
+                  />
+                )}
+
+                <button className="banner-arrow left" onClick={() => setCurrentBannerIndex(prev => (prev === 0 ? featuredGamesList.length - 1 : prev - 1))}>
+                  <ChevronLeft size={32} />
+                </button>
+                
+                <div className={`hero-overlay ${showTrailer ? 'hidden' : ''}`}>
+                  <div className="hero-content">
+                    <span className="hero-badge">EM DESTAQUE</span>
+                    <h1 className="hero-title">{featuredGame.title}</h1>
+                    
+                    <div className="hero-actions">
+                      <button 
+                        className="hero-play-btn" 
+                        onClick={() => openGame(featuredGame)}
+                      >
+                        JOGAR AGORA
+                      </button>
+                      <button className="hero-more-btn">
+                        <MoreHorizontal size={20} />
+                      </button>
+                    </div>
+                  </div>
+                  {/* Carousel Dots */}
+                  <div className="hero-dots">
+                    {featuredGamesList.map((_, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`dot ${idx === currentBannerIndex ? 'active' : ''}`}
+                        onClick={() => setCurrentBannerIndex(idx)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <button className="banner-arrow right" onClick={() => setCurrentBannerIndex(prev => (prev === featuredGamesList.length - 1 ? 0 : prev + 1))}>
+                  <ChevronRight size={32} />
+                </button>
+              </section>
+            )}
+          </div>
+        )}
         {page === "library" && <LibraryPage onBrowse={() => switchPage("catalog")} />}
         {page === "catalog" && !selected && (
           <section className="catalog-page">
