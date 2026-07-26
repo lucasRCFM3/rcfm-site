@@ -703,9 +703,9 @@ function GameDetails({ game, onBack }: { game: Game; onBack: () => void }) {
             <ArrowLeft size={20} /><span>Voltar</span>
           </button>
 
-          <div className="web-steam-game-header">
-            <h1 className="web-steam-game-title">{game.title}</h1>
-            <div className="web-game-meta-row" style={{ justifyContent: "flex-start", marginTop: "8px" }}>
+          <div className="web-steam-game-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <h1 className="web-steam-game-title" style={{ textAlign: 'center' }}>{game.title}</h1>
+            <div className="web-game-meta-row" style={{ justifyContent: "center", marginTop: "8px" }}>
               {game.version && <span className="web-meta-badge">Versão: {game.version}</span>}
               {game.patch && (
                 <span className="web-meta-badge">
