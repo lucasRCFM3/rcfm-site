@@ -215,6 +215,8 @@ export default function HomePage() {
             shortDescription: typeof data.shortDescription === "string" ? data.shortDescription : undefined,
             screenshots: Array.isArray(data.screenshots) ? data.screenshots.filter((s: unknown): s is string => typeof s === "string") : undefined,
             trailers: Array.isArray(data.trailers) ? data.trailers.filter((t: unknown): t is string => typeof t === "string") : undefined,
+            installedDlcs: Array.isArray(data.installedDlcs) ? data.installedDlcs.filter((s: unknown): s is string => typeof s === "string") : undefined,
+            missingDlcs: Array.isArray(data.missingDlcs) ? data.missingDlcs.filter((s: unknown): s is string => typeof s === "string") : undefined,
           } satisfies Game;
         });
       setGameGroups(groupCatalogVersions(records));
