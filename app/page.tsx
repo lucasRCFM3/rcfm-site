@@ -42,6 +42,8 @@ type Game = {
   patch?: string;
   sizeBytes?: number;
   isOutdated?: boolean;
+  installedDlcs?: string[];
+  missingDlcs?: string[];
   typeck: "OnlineFix" | "Hypervisor" | "Nenhum";
   installerUrl?: string;
   trailerUrl?: string;
@@ -716,7 +718,23 @@ function GameDetails({ game, onBack }: { game: Game; onBack: () => void }) {
             </div>
           </div>
 
-          <div className="web-steam-main-grid">
+          <div className="web-steam-main-grid" style={{ position: 'relative' }}>
+            {/* DLC Wing - Left */}
+            <details open className="steam-dlc-section" style={{ position: 'absolute', top: 0, right: '100%', marginRight: '20px', width: '340px', background: 'rgba(0,0,0,0.4)', borderRadius: '6px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#6ee7a0', outline: 'none', userSelect: 'none', fontSize: '20px' }}>DLCs Ativas ({game.installedDlcs?.length || 0})</summary>
+              <ul style={{ marginTop: '24px', paddingLeft: '24px', color: '#c6d4df', fontSize: '18px', listStyleType: 'disc' }}>
+                {(game.installedDlcs || []).map(dlc => <li key={dlc} style={{ marginBottom: '40px', lineHeight: '1.4', fontWeight: 'bold' }}>{dlc}</li>)}
+              </ul>
+            </details>
+
+            {/* DLC Wing - Right */}
+            <details open className="steam-dlc-section" style={{ position: 'absolute', top: 0, left: '100%', marginLeft: '20px', width: '340px', background: 'rgba(0,0,0,0.4)', borderRadius: '6px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#ff8f8f', outline: 'none', userSelect: 'none', fontSize: '20px' }}>DLCs Faltantes ({game.missingDlcs?.length || 0})</summary>
+              <ul style={{ marginTop: '24px', paddingLeft: '24px', color: '#c6d4df', fontSize: '18px', listStyleType: 'disc' }}>
+                {(game.missingDlcs || []).map(dlc => <li key={dlc} style={{ marginBottom: '40px', lineHeight: '1.4', fontWeight: 'bold' }}>{dlc}</li>)}
+              </ul>
+            </details>
+
             <div className="web-steam-left-col">
               <div className="web-steam-media-player">
                 {selectedMedia.type === "video" ? (
