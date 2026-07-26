@@ -96,6 +96,21 @@ const catalogIdentity = (game: Game) =>
 const releaseIdentity = (game: Game) =>
   `${catalogIdentity(game)}\u0000${game.version?.trim() ?? ""}\u0000${game.patch?.trim() ?? ""}`;
 
+const gameRoutePart = (value: string | undefined, fallback: string) =>
+  encodeURIComponent((value?.trim() || fallback).replace(/\s+/g, "-"));
+
+const gameRoutePath = (game: Game) =>
+  `/${[
+    gameRoutePart(game.appId || game.parentId, "jogo"),
+    gameRoutePart(game.version, "sem-versao"),
+    gameRoutePart(game.patch, "sem-patch"),
+  ].join("_")}`;
+
+const currentRoutePath = () => {
+  const path = window.location.pathname.replace(/\/+$/, "");
+  return path || "/";
+};
+
 const compareGameVersions = (left: Game, right: Game) =>
   catalogVersionCollator.compare(right.version ?? "", left.version ?? "")
   || catalogVersionCollator.compare(right.patch ?? "", left.patch ?? "")
@@ -217,10 +232,52 @@ export default function HomePage() {
   }, [gameGroups, query, filter, sort]);
 
   const latestGames = gameGroups.map(({ versions }) => versions[0]);
+  const openGame = (game: Game) => {
+    const path = gameRoutePath(game);
+    if (currentRoutePath() !== path) {
+      window.history.pushState({ rcfmCatalogNavigation: true }, "", path);
+    }
+    setPage("catalog");
+    setSelected(game);
+  };
+  const closeGame = () => {
+    setSelected(null);
+    if (window.history.state?.rcfmCatalogNavigation) {
+      window.history.back();
+    } else if (currentRoutePath() !== "/") {
+      window.history.replaceState({}, "", "/");
+    }
+  };
   const switchPage = (next: Page) => {
+    if (currentRoutePath() !== "/") window.history.pushState({}, "", "/");
     setPage(next);
     setSelected(null);
   };
+
+  useEffect(() => {
+    const syncGameFromUrl = () => {
+      const path = currentRoutePath();
+      if (path === "/") {
+        setSelected(null);
+        return;
+      }
+
+      const game = gameGroups
+        .flatMap(({ versions }) => versions)
+        .find((candidate) => gameRoutePath(candidate) === path);
+      if (game) {
+        setPage("catalog");
+        setSelected(game);
+      } else if (!loading && gameGroups.length > 0) {
+        window.history.replaceState({}, "", "/");
+        setSelected(null);
+      }
+    };
+
+    syncGameFromUrl();
+    window.addEventListener("popstate", syncGameFromUrl);
+    return () => window.removeEventListener("popstate", syncGameFromUrl);
+  }, [gameGroups, loading]);
 
   return (
     <div className={`launcher-shell ${collapsed ? "is-collapsed" : ""}`}>
@@ -334,7 +391,7 @@ export default function HomePage() {
                         <GameCard
                           key={group.identity}
                           versions={group.versions}
-                          onOpen={setSelected}
+                          onOpen={openGame}
                         />
                       ))}
                     </div>
@@ -342,7 +399,7 @@ export default function HomePage() {
             </div>
           </section>
         )}
-        {selected && <GameDetails game={selected} onBack={() => setSelected(null)} />}
+        {selected && <GameDetails game={selected} onBack={closeGame} />}
       </main>
 
       {unavailable && <UnavailableModal feature={unavailable} onClose={() => setUnavailable(null)} />}
