@@ -26,11 +26,15 @@ export function sites(): Plugin {
     },
     async closeBundle() {
       const outputDirectory = resolve(root, "dist", ".openai");
+      const serverDirectory = resolve(root, "dist", "server");
       const hostingConfig = resolve(root, ".openai", "hosting.json");
       const drizzleSource = resolve(root, "drizzle");
+      const workerEntry = resolve(root, "worker", "index.js");
 
       await rm(outputDirectory, { recursive: true, force: true });
       await mkdir(outputDirectory, { recursive: true });
+      await rm(serverDirectory, { recursive: true, force: true });
+      await mkdir(serverDirectory, { recursive: true });
 
       if (await exists(hostingConfig)) {
         await cp(hostingConfig, resolve(outputDirectory, "hosting.json"));
@@ -39,6 +43,9 @@ export function sites(): Plugin {
         await cp(drizzleSource, resolve(outputDirectory, "drizzle"), {
           recursive: true,
         });
+      }
+      if (await exists(workerEntry)) {
+        await cp(workerEntry, resolve(serverDirectory, "index.js"));
       }
     },
   };
