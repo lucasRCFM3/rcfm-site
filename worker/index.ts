@@ -24,6 +24,16 @@ const isMediaFireHost = (hostname: string) =>
 const isDownloadHost = (hostname: string) => hostname.startsWith("download") && isMediaFireHost(hostname);
 const mediaFireUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
+const getStableMediaFireUrl = (sourceUrl: URL) => {
+  if (!isDownloadHost(sourceUrl.hostname)) return sourceUrl;
+
+  // URLs de CDN expiram. A quickkey é o penúltimo segmento: /<token>/<quickkey>/<arquivo>.
+  const quickKey = sourceUrl.pathname.split("/").filter(Boolean).at(-2);
+  if (!quickKey || !/^[a-zA-Z0-9]{8,}$/.test(quickKey)) return sourceUrl;
+
+  return new URL(`https://www.mediafire.com/file/${quickKey}`);
+};
+
 // Espelha o seletor do launcher: a#downloadButton[href], a.input.popsok[href].
 const extractMediaFireDirectLink = (page: string) => {
   const anchorTags = page.match(/<a\b[^>]*>/gi) ?? [];
@@ -53,7 +63,7 @@ async function resolveMediaFireDownload(url: URL): Promise<Response> {
     return downloadError("O link informado não pertence ao MediaFire.", 400);
   }
 
-  const upstream = await fetch(sourceUrl, {
+  const upstream = await fetch(getStableMediaFireUrl(sourceUrl), {
     headers: {
       accept: "text/html,application/xhtml+xml",
       "user-agent": mediaFireUserAgent,
