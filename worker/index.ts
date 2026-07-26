@@ -1,6 +1,7 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { resolveInstallerConfig } from "../server/installerConfig";
 
 interface Env {
   ASSETS: Fetcher;
@@ -81,6 +82,22 @@ async function resolveMediaFireDownload(url: URL): Promise<Response> {
   return Response.redirect(downloadUrl.toString(), 302);
 }
 
+async function getInstallerConfig(url: URL): Promise<Response> {
+  const fileName = url.searchParams.get("fileName");
+  if (!fileName) return downloadError("Nome do instalador ausente.", 400);
+
+  try {
+    return Response.json(await resolveInstallerConfig(fileName), {
+      headers: { "cache-control": "no-store" },
+    });
+  } catch (error) {
+    return Response.json(
+      { error: error instanceof Error ? error.message : "Não foi possível localizar a configuração." },
+      { status: 404, headers: { "cache-control": "no-store" } },
+    );
+  }
+}
+
 // Image security config. SVG sources with .svg extension auto-skip the
 // optimization endpoint on the client side (served directly, no proxy).
 // To route SVGs through the optimizer (with security headers), set
@@ -92,6 +109,7 @@ const worker = {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/mediafire-download") return resolveMediaFireDownload(url);
+    if (url.pathname === "/api/installer-config") return getInstallerConfig(url);
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
