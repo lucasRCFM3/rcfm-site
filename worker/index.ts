@@ -22,6 +22,21 @@ interface ExecutionContext {
 const isMediaFireHost = (hostname: string) =>
   hostname === "mediafire.com" || hostname.endsWith(".mediafire.com");
 const isDownloadHost = (hostname: string) => hostname.startsWith("download") && isMediaFireHost(hostname);
+const mediaFireUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+
+// Espelha o seletor do launcher: a#downloadButton[href], a.input.popsok[href].
+const extractMediaFireDirectLink = (page: string) => {
+  const anchorTags = page.match(/<a\b[^>]*>/gi) ?? [];
+  const anchor = anchorTags.find((tag) => {
+    const id = tag.match(/\bid\s*=\s*(["'])(.*?)\1/i)?.[2];
+    const classes = tag.match(/\bclass\s*=\s*(["'])(.*?)\1/i)?.[2]?.split(/\s+/) ?? [];
+    return id === "downloadButton" || (classes.includes("input") && classes.includes("popsok"));
+  });
+
+  return anchor
+    ?.match(/\bhref\s*=\s*(["'])(.*?)\1/i)?.[2]
+    ?.replaceAll("&amp;", "&");
+};
 
 const downloadError = (message: string, status: number) => new Response(message, {
   status,
@@ -39,14 +54,16 @@ async function resolveMediaFireDownload(url: URL): Promise<Response> {
   }
 
   const upstream = await fetch(sourceUrl, {
-    headers: { accept: "text/html,application/xhtml+xml" },
+    headers: {
+      accept: "text/html,application/xhtml+xml",
+      "user-agent": mediaFireUserAgent,
+    },
     redirect: "follow",
   });
   const finalUrl = new URL(upstream.url);
   if (isDownloadHost(finalUrl.hostname)) return Response.redirect(finalUrl.toString(), 302);
 
-  const page = (await upstream.text()).replaceAll("\\/", "/").replaceAll("&amp;", "&");
-  const directLink = page.match(/https?:\\/\\/download[^"'<>\\s]+\\.mediafire\\.com\\/[^"'<>\\s]+/i)?.[0];
+  const directLink = extractMediaFireDirectLink(await upstream.text());
   if (!directLink) return downloadError("Não foi possível resolver o download no MediaFire.", 502);
 
   const downloadUrl = new URL(directLink);

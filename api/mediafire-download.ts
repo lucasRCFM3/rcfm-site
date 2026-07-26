@@ -9,6 +9,21 @@ type VercelResponse = {
 const isMediaFireHost = (hostname: string) =>
   hostname === "mediafire.com" || hostname.endsWith(".mediafire.com");
 const isDownloadHost = (hostname: string) => hostname.startsWith("download") && isMediaFireHost(hostname);
+const mediaFireUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+
+// Espelha o seletor do launcher: a#downloadButton[href], a.input.popsok[href].
+const extractMediaFireDirectLink = (page: string) => {
+  const anchorTags = page.match(/<a\b[^>]*>/gi) ?? [];
+  const anchor = anchorTags.find((tag) => {
+    const id = tag.match(/\bid\s*=\s*(["'])(.*?)\1/i)?.[2];
+    const classes = tag.match(/\bclass\s*=\s*(["'])(.*?)\1/i)?.[2]?.split(/\s+/) ?? [];
+    return id === "downloadButton" || (classes.includes("input") && classes.includes("popsok"));
+  });
+
+  return anchor
+    ?.match(/\bhref\s*=\s*(["'])(.*?)\1/i)?.[2]
+    ?.replaceAll("&amp;", "&");
+};
 
 const fail = (response: VercelResponse, status: number, message: string) => {
   response.setHeader("Cache-Control", "no-store");
@@ -27,14 +42,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   try {
     const upstream = await fetch(sourceUrl, {
-      headers: { accept: "text/html,application/xhtml+xml" },
+      headers: {
+        accept: "text/html,application/xhtml+xml",
+        "user-agent": mediaFireUserAgent,
+      },
       redirect: "follow",
     });
     const finalUrl = new URL(upstream.url);
     if (isDownloadHost(finalUrl.hostname)) return response.redirect(302, finalUrl.toString());
 
-    const page = (await upstream.text()).replaceAll("\\/", "/").replaceAll("&amp;", "&");
-    const directLink = page.match(/https?:\/\/download[^"'<>\s]+\.mediafire\.com\/[^"'<>\s]+/i)?.[0];
+    const directLink = extractMediaFireDirectLink(await upstream.text());
     if (!directLink) return fail(response, 502, "Não foi possível resolver o download no MediaFire.");
 
     const downloadUrl = new URL(directLink);
