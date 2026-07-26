@@ -1,7 +1,7 @@
 "use client";
 
 import { collectionGroup, onSnapshot } from "firebase/firestore";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownAZ,
   ArrowLeft,
@@ -24,6 +24,7 @@ import {
   Wrench,
   X,
   MoreHorizontal,
+  Play,
 } from "lucide-react";
 import { db } from "./firebase";
 import { HlsVideoPlayer } from "./components/HlsVideoPlayer";
@@ -44,6 +45,12 @@ type Game = {
   typeck: "OnlineFix" | "Hypervisor" | "Nenhum";
   installerUrl?: string;
   trailerUrl?: string;
+  developer?: string;
+  publisher?: string;
+  releaseDate?: string;
+  shortDescription?: string;
+  screenshots?: string[];
+  trailers?: string[];
 };
 
 type GameGroup = {
@@ -200,6 +207,12 @@ export default function HomePage() {
               : "Nenhum",
             installerUrl: installerLink(data),
             trailerUrl: typeof data.trailerUrl === "string" ? data.trailerUrl : undefined,
+            developer: typeof data.developer === "string" ? data.developer : undefined,
+            publisher: typeof data.publisher === "string" ? data.publisher : undefined,
+            releaseDate: typeof data.releaseDate === "string" ? data.releaseDate : undefined,
+            shortDescription: typeof data.shortDescription === "string" ? data.shortDescription : undefined,
+            screenshots: Array.isArray(data.screenshots) ? data.screenshots.filter((s: unknown): s is string => typeof s === "string") : undefined,
+            trailers: Array.isArray(data.trailers) ? data.trailers.filter((t: unknown): t is string => typeof t === "string") : undefined,
           } satisfies Game;
         });
       setGameGroups(groupCatalogVersions(records));
@@ -608,6 +621,8 @@ function GameCard({
 function GameDetails({ game, onBack }: { game: Game; onBack: () => void }) {
   const [downloadState, setDownloadState] = useState<"idle" | "preparing" | "started" | "error">("idle");
   const [downloadMessage, setDownloadMessage] = useState("");
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
   const patchClass = game.isOutdated === true
     ? "outdated"
     : game.isOutdated === false
@@ -654,61 +669,163 @@ function GameDetails({ game, onBack }: { game: Game; onBack: () => void }) {
     }
   };
 
+  const backgroundUrl = game.heroUrl || game.coverUrl || "";
+
+  const mediaItems: { type: "video" | "image"; url: string; thumbnail: string }[] = [];
+  if (game.trailers && game.trailers.length > 0) {
+    game.trailers.forEach(t => mediaItems.push({ type: "video", url: t, thumbnail: backgroundUrl }));
+  } else if (game.trailerUrl) {
+    mediaItems.push({ type: "video", url: game.trailerUrl, thumbnail: backgroundUrl });
+  }
+  if (game.screenshots && game.screenshots.length > 0) {
+    game.screenshots.forEach(s => mediaItems.push({ type: "image", url: s, thumbnail: s }));
+  }
+
+  const selectedMedia = mediaItems[selectedMediaIndex] || { type: "image" as const, url: backgroundUrl, thumbnail: backgroundUrl };
+
+  const scrollCarousel = (dir: "left" | "right") => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollBy({ left: dir === "left" ? -300 : 300, behavior: "smooth" });
+    }
+  };
+
   return (
     <section className="web-game-page">
       <div
         className="web-game-background"
-        style={game.heroUrl ? { backgroundImage: `url(${game.heroUrl})` } : undefined}
+        style={backgroundUrl ? { backgroundImage: `url(${backgroundUrl})` } : undefined}
       >
         <div />
       </div>
       <div className="web-game-content">
-        <div className="web-game-main-view">
+        <div className="web-game-main-view" style={{ justifyContent: "flex-start", paddingTop: "100px" }}>
           <button className="nav-back-btn" type="button" onClick={onBack}>
             <ArrowLeft size={20} /><span>Voltar</span>
           </button>
-          <div className="web-game-details-section">
-            <div className="web-game-title-area">
-              {game.typeck !== "Nenhum" && (
-                <span className={`web-game-tag ${game.typeck.toLowerCase()}`}>
-                  {game.typeck.toUpperCase()}
+
+          <div className="web-steam-game-header">
+            <h1 className="web-steam-game-title">{game.title}</h1>
+            <div className="web-game-meta-row" style={{ justifyContent: "flex-start", marginTop: "8px" }}>
+              {game.version && <span className="web-meta-badge">Versão: {game.version}</span>}
+              {game.patch && (
+                <span className="web-meta-badge">
+                  Patch: <strong className={`patch-status ${patchClass}`}>{game.patch}</strong>
                 </span>
               )}
-              <h1 className="web-game-massive-title">{game.title}</h1>
-              <div className="web-game-meta-row">
-                {game.version && <span className="web-meta-badge">Versão: {game.version}</span>}
-                {game.patch && (
-                  <span className="web-meta-badge">
-                    Patch: <strong className={`patch-status ${patchClass}`}>{game.patch}</strong>
-                  </span>
-                )}
-                {game.sizeBytes && <span className="web-meta-badge">Tamanho: {formatBytes(game.sizeBytes)}</span>}
-              </div>
+              {game.sizeBytes && <span className="web-meta-badge">Tamanho: {formatBytes(game.sizeBytes)}</span>}
             </div>
-            <div className="web-game-action-area">
-              {game.installerUrl
-                ? (
-                  <button
-                    className={`web-primary-action-btn ${downloadState === "preparing" ? "is-loading" : ""}`}
-                    type="button"
-                    onClick={() => void startDownload()}
-                    disabled={downloadState === "preparing"}
-                  >
-                    {downloadState === "preparing"
-                      ? <LoaderCircle className="download-spinner" size={18} />
-                      : <Download size={18} />}
-                    {downloadState === "preparing" ? "PREPARANDO..." : "BAIXAR INSTALADOR"}
+          </div>
+
+          <div className="web-steam-main-grid">
+            <div className="web-steam-left-col">
+              <div className="web-steam-media-player">
+                {selectedMedia.type === "video" ? (
+                  <HlsVideoPlayer
+                    key={selectedMedia.url}
+                    className="web-steam-video"
+                    src={selectedMedia.url}
+                    autoPlay
+                    loop
+                    muted
+                  />
+                ) : (
+                  <img src={selectedMedia.url} className="web-steam-video-fallback" alt="Media" />
+                )}
+              </div>
+
+              {mediaItems.length > 1 && (
+                <div className="web-steam-carousel-wrapper">
+                  <button className="web-steam-carousel-btn" type="button" onClick={() => scrollCarousel("left")}>
+                    <ChevronLeft size={24} />
                   </button>
-                )
-                : <div className="installer-pending">Instalador portátil ainda não publicado para esta versão.</div>}
-              {downloadState !== "idle" && (
-                <div className={`download-feedback ${downloadState}`} role="status" aria-live="polite">
-                  {downloadState === "preparing" && <LoaderCircle className="download-spinner" size={20} />}
-                  {downloadState === "started" && <CheckCircle2 size={20} />}
-                  <span>{downloadMessage}</span>
+                  <div className="web-steam-carousel-thumbnails" ref={carouselRef}>
+                    {mediaItems.map((item, i) => (
+                      <div
+                        key={i}
+                        className={`web-steam-thumbnail ${i === selectedMediaIndex ? "active" : ""}`}
+                        onClick={() => setSelectedMediaIndex(i)}
+                      >
+                        <img src={item.thumbnail} alt={`Thumbnail ${i}`} />
+                        {item.type === "video" && (
+                          <div className="web-steam-thumbnail-play">
+                            <Play size={16} fill="currentColor" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button className="web-steam-carousel-btn" type="button" onClick={() => scrollCarousel("right")}>
+                    <ChevronRight size={24} />
+                  </button>
                 </div>
               )}
             </div>
+
+            <div className="web-steam-right-col">
+              <img src={backgroundUrl} className="web-steam-cover-img" alt={game.title} />
+
+              <p className="web-steam-description">
+                {game.shortDescription || "Sem descrição disponível."}
+              </p>
+
+              <div className="web-steam-metadata">
+                <div className="web-steam-meta-row">
+                  <span className="web-steam-meta-label">DATA DE LANÇAMENTO:</span>
+                  <span className="web-steam-meta-value">{game.releaseDate || "—"}</span>
+                </div>
+                <div className="web-steam-meta-row">
+                  <span className="web-steam-meta-label">DESENVOLVEDOR:</span>
+                  <span className="web-steam-meta-value">{game.developer || "Desconhecido"}</span>
+                </div>
+                <div className="web-steam-meta-row">
+                  <span className="web-steam-meta-label">DISTRIBUIDORA:</span>
+                  <span className="web-steam-meta-value">{game.publisher || "Desconhecida"}</span>
+                </div>
+              </div>
+
+              <div className="web-steam-tags-container">
+                <span className="web-steam-meta-label-small">Marcadores populares para este produto:</span>
+                <div className="web-steam-tags">
+                  {game.typeck !== "Nenhum" && (
+                    <span
+                      className="web-steam-tag"
+                      style={game.typeck === "OnlineFix" ? { backgroundColor: "#000", color: "#fff" } : { backgroundColor: "#fff", color: "#000" }}
+                    >
+                      {game.typeck.toUpperCase()}
+                    </span>
+                  )}
+                  {game.genres && game.genres.split(",").map(tag => (
+                    <span key={tag} className="web-steam-tag">{tag.trim()}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Download Action Area */}
+          <div className="web-steam-action-area">
+            {game.installerUrl
+              ? (
+                <button
+                  className={`web-primary-action-btn ${downloadState === "preparing" ? "is-loading" : ""}`}
+                  type="button"
+                  onClick={() => void startDownload()}
+                  disabled={downloadState === "preparing"}
+                >
+                  {downloadState === "preparing"
+                    ? <LoaderCircle className="download-spinner" size={18} />
+                    : <Download size={18} />}
+                  {downloadState === "preparing" ? "PREPARANDO..." : "BAIXAR INSTALADOR"}
+                </button>
+              )
+              : <div className="installer-pending">Instalador portátil ainda não publicado para esta versão.</div>}
+            {downloadState !== "idle" && (
+              <div className={`download-feedback ${downloadState}`} role="status" aria-live="polite">
+                {downloadState === "preparing" && <LoaderCircle className="download-spinner" size={20} />}
+                {downloadState === "started" && <CheckCircle2 size={20} />}
+                <span>{downloadMessage}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
