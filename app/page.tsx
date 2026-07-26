@@ -8,10 +8,12 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
   Download,
   Gamepad2,
   Home,
   Library,
+  LoaderCircle,
   Package,
   Search,
   Settings,
@@ -445,18 +447,52 @@ function GameCard({
 }
 
 function GameDetails({ game, onBack }: { game: Game; onBack: () => void }) {
+  const [downloadState, setDownloadState] = useState<"idle" | "preparing" | "started" | "error">("idle");
+  const [downloadMessage, setDownloadMessage] = useState("");
   const patchClass = game.isOutdated === true
     ? "outdated"
     : game.isOutdated === false
       ? "updated"
       : "";
-  const startDownload = () => {
-    if (!game.installerUrl) return;
-    window.location.assign(
-      isMediaFireLink(game.installerUrl)
-        ? `/api/mediafire-download?url=${encodeURIComponent(game.installerUrl)}`
-        : game.installerUrl,
-    );
+  const startDownload = async () => {
+    if (!game.installerUrl || downloadState === "preparing") return;
+    setDownloadState("preparing");
+    setDownloadMessage("Resolvendo o link e preparando o instalador...");
+
+    try {
+      let downloadUrl = game.installerUrl;
+      if (isMediaFireLink(downloadUrl)) {
+        const response = await fetch(
+          `/api/mediafire-download?format=json&url=${encodeURIComponent(downloadUrl)}`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) {
+          throw new Error((await response.text()) || "Não foi possível preparar o download.");
+        }
+        const payload = await response.json() as { downloadUrl?: unknown };
+        if (typeof payload.downloadUrl !== "string" || !isMediaFireLink(payload.downloadUrl)) {
+          throw new Error("O servidor retornou um link de download inválido.");
+        }
+        downloadUrl = payload.downloadUrl;
+      }
+
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.rel = "noopener";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+
+      setDownloadState("started");
+      setDownloadMessage("Download iniciado. Confira os downloads do navegador.");
+      window.setTimeout(() => {
+        setDownloadState("idle");
+        setDownloadMessage("");
+      }, 5000);
+    } catch (reason) {
+      setDownloadState("error");
+      setDownloadMessage(reason instanceof Error ? reason.message : String(reason));
+    }
   };
 
   return (
@@ -493,11 +529,26 @@ function GameDetails({ game, onBack }: { game: Game; onBack: () => void }) {
             <div className="web-game-action-area">
               {game.installerUrl
                 ? (
-                  <button className="web-primary-action-btn" type="button" onClick={startDownload}>
-                    <Download size={18} /> BAIXAR INSTALADOR
+                  <button
+                    className={`web-primary-action-btn ${downloadState === "preparing" ? "is-loading" : ""}`}
+                    type="button"
+                    onClick={() => void startDownload()}
+                    disabled={downloadState === "preparing"}
+                  >
+                    {downloadState === "preparing"
+                      ? <LoaderCircle className="download-spinner" size={18} />
+                      : <Download size={18} />}
+                    {downloadState === "preparing" ? "PREPARANDO..." : "BAIXAR INSTALADOR"}
                   </button>
                 )
                 : <div className="installer-pending">Instalador portátil ainda não publicado para esta versão.</div>}
+              {downloadState !== "idle" && (
+                <div className={`download-feedback ${downloadState}`} role="status" aria-live="polite">
+                  {downloadState === "preparing" && <LoaderCircle className="download-spinner" size={20} />}
+                  {downloadState === "started" && <CheckCircle2 size={20} />}
+                  <span>{downloadMessage}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

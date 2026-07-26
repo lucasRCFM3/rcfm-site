@@ -8,6 +8,15 @@
 @media(max-width:800px) { .web-game-main-view { min-height:calc(100vh - 64px); padding:30px 22px; }.nav-back-btn { top:22px; left:20px; }.web-game-massive-title { font-size:46px; } }
 @media(max-width:900px) { .catalog-controls,.catalog-filter-group { align-items:flex-start; flex-direction:column; }.catalog-controls { gap:12px; }.catalog-filter-options { flex-wrap:wrap; } }
 .web-primary-action-btn { border:0; cursor:pointer; font:inherit; }
+.web-game-action-area { flex-direction:column; }
+.web-primary-action-btn:disabled { cursor:wait; opacity:.78; transform:none; }
+.web-primary-action-btn.is-loading { min-width:330px; color:#151515; background:#dedede; box-shadow:0 0 24px rgba(255,255,255,.14); }
+.download-spinner { animation:download-spin .8s linear infinite; }
+.download-feedback { display:flex; align-items:center; justify-content:center; gap:9px; min-height:42px; padding:10px 14px; border:1px solid rgba(255,255,255,.14); border-radius:9px; color:#d7d7d7; background:rgba(0,0,0,.58); backdrop-filter:blur(10px); font-size:13px; }
+.download-feedback.preparing { color:#fff; }
+.download-feedback.started { color:#6ee7a0; border-color:rgba(52,199,89,.32); background:rgba(22,101,52,.18); }
+.download-feedback.error { color:#ff8f8f; border-color:rgba(255,59,48,.32); background:rgba(127,29,29,.2); }
+@keyframes download-spin { to { transform:rotate(360deg); } }
 .card-open-hitbox { position:absolute; z-index:4; inset:0; width:100%; border:0; background:transparent; cursor:pointer; }
 .cover-overlay { pointer-events:none; }
 .version-arrow { position:absolute; z-index:6; top:50%; display:grid; width:34px; height:44px; place-items:center; padding:0; border:1px solid rgba(255,255,255,.22); border-radius:8px; color:#fff; background:rgba(5,5,5,.78); box-shadow:0 5px 18px rgba(0,0,0,.55); backdrop-filter:blur(8px); transform:translateY(-50%); transition:background .2s,transform .2s,border-color .2s; }

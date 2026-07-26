@@ -40,8 +40,16 @@ const fail = (response: VercelResponse, status: number, message: string) => {
   response.status(status).send(message);
 };
 
+const deliverDownload = (response: VercelResponse, downloadUrl: string, asJson: boolean) => {
+  if (!asJson) return response.redirect(302, downloadUrl);
+  response.setHeader("Cache-Control", "no-store");
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  return response.status(200).send(JSON.stringify({ downloadUrl }));
+};
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   const rawUrl = typeof request.query?.url === "string" ? request.query.url : undefined;
+  const asJson = request.query?.format === "json";
   if (!rawUrl) return fail(response, 400, "Link do instalador ausente.");
 
   let sourceUrl: URL;
@@ -59,14 +67,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
       redirect: "follow",
     });
     const finalUrl = new URL(upstream.url);
-    if (isDownloadHost(finalUrl.hostname)) return response.redirect(302, finalUrl.toString());
+    if (isDownloadHost(finalUrl.hostname)) return deliverDownload(response, finalUrl.toString(), asJson);
 
     const directLink = extractMediaFireDirectLink(await upstream.text());
     if (!directLink) return fail(response, 502, "Não foi possível resolver o download no MediaFire.");
 
     const downloadUrl = new URL(directLink);
     if (!isDownloadHost(downloadUrl.hostname)) return fail(response, 502, "O MediaFire retornou um destino inválido.");
-    return response.redirect(302, downloadUrl.toString());
+    return deliverDownload(response, downloadUrl.toString(), asJson);
   } catch {
     return fail(response, 502, "Não foi possível conectar ao MediaFire.");
   }

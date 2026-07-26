@@ -38,8 +38,16 @@ const downloadError = (message, status) => new Response(message, {
   },
 });
 
+const deliverDownload = (downloadUrl, asJson) => asJson
+  ? Response.json(
+    { downloadUrl },
+    { headers: { "cache-control": "no-store" } },
+  )
+  : Response.redirect(downloadUrl, 302);
+
 async function resolveMediaFireDownload(url) {
   const rawUrl = url.searchParams.get("url");
+  const asJson = url.searchParams.get("format") === "json";
   if (!rawUrl) return downloadError("Link do instalador ausente.", 400);
 
   let sourceUrl;
@@ -62,7 +70,7 @@ async function resolveMediaFireDownload(url) {
     });
     const finalUrl = new URL(upstream.url);
     if (isDownloadHost(finalUrl.hostname)) {
-      return Response.redirect(finalUrl.toString(), 302);
+      return deliverDownload(finalUrl.toString(), asJson);
     }
 
     const directLink = extractMediaFireDirectLink(await upstream.text());
@@ -74,7 +82,7 @@ async function resolveMediaFireDownload(url) {
     if (!isDownloadHost(downloadUrl.hostname)) {
       return downloadError("O MediaFire retornou um destino inválido.", 502);
     }
-    return Response.redirect(downloadUrl.toString(), 302);
+    return deliverDownload(downloadUrl.toString(), asJson);
   } catch {
     return downloadError("Não foi possível conectar ao MediaFire.", 502);
   }
