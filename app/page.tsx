@@ -10,7 +10,7 @@ type Game = { id:string; parentId:string; title:string; coverUrl?:string; heroUr
 type Page = "home"|"catalog"|"library";
 type Filter = "all"|"onlinefix"|"hypervisor"|"normal";
 type Sort = "title-asc"|"title-desc"|"onlinefix-first"|"hypervisor-first"|"normal-first";
-const installerLink = (data:Record<string,unknown>) => [data.portableInstallerDownloadUrl,data.portableInstallerUrl,data.installerUrl].find((value):value is string => typeof value === "string" && Boolean(value.trim()))?.trim();
+const installerLink = (data:Record<string,unknown>) => [data.portableInstallerUrl,data.portableInstallerDownloadUrl,data.installerUrl].find((value):value is string => typeof value === "string" && Boolean(value.trim()))?.trim();
 const formatBytes = (value?:number) => { if(!value)return "—"; const units=["B","KB","MB","GB","TB"], index=Math.min(Math.floor(Math.log(value)/Math.log(1024)),units.length-1); return `${(value/1024**index).toFixed(index>2?1:0)} ${units[index]}`; };
 const isMediaFireLink = (value:string) => { try { const host=new URL(value).hostname; return host==="mediafire.com"||host.endsWith(".mediafire.com"); } catch { return false; } };
 
