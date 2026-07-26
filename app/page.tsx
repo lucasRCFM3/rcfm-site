@@ -249,14 +249,14 @@ export default function HomePage() {
     if (window.history.state?.rcfmCatalogNavigation) {
       window.history.back();
     } else {
-      const targetPath = page === "catalog" ? "/catalogo" : "/";
+      const targetPath = page === "catalog" ? "/catalogo" : "/home";
       if (currentRoutePath() !== targetPath) {
         window.history.replaceState({}, "", targetPath);
       }
     }
   };
   const switchPage = (next: Page) => {
-    const targetPath = next === "catalog" ? "/catalogo" : "/";
+    const targetPath = next === "catalog" ? "/catalogo" : "/home";
     if (currentRoutePath() !== targetPath) {
       window.history.pushState({}, "", targetPath);
     }
@@ -272,7 +272,7 @@ export default function HomePage() {
         setPage("catalog");
         return;
       }
-      if (path === "/") {
+      if (path === "/" || path === "/home") {
         setSelected(null);
         setPage("home");
         return;
@@ -285,7 +285,7 @@ export default function HomePage() {
         setPage("catalog");
         setSelected(game);
       } else if (!loading && gameGroups.length > 0) {
-        window.history.replaceState({}, "", "/");
+        window.history.replaceState({}, "", "/home");
         setSelected(null);
       }
     };
