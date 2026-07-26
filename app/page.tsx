@@ -169,6 +169,7 @@ export default function HomePage() {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [showTrailer, setShowTrailer] = useState(false);
   const [isHoveringBanner, setIsHoveringBanner] = useState(false);
+  const [overlayVisible, setOverlayVisible] = useState(true);
   const [featuredGamesList, setFeaturedGamesList] = useState<Game[]>([]);
 
   useEffect(() => onSnapshot(
@@ -314,8 +315,10 @@ export default function HomePage() {
   useEffect(() => {
     if (isHoveringBanner && featuredGame?.trailerUrl) {
       setShowTrailer(true);
+      setOverlayVisible(false);
     } else {
       setShowTrailer(false);
+      setOverlayVisible(true);
     }
   }, [isHoveringBanner, currentBannerIndex, featuredGame?.trailerUrl]);
 
@@ -365,6 +368,7 @@ export default function HomePage() {
                 style={{ backgroundImage: `url('${featuredGame.heroUrl || featuredGame.coverUrl}')` }}
                 onMouseEnter={() => setIsHoveringBanner(true)}
                 onMouseLeave={() => setIsHoveringBanner(false)}
+                onClick={() => setOverlayVisible(prev => !prev)}
               >
                 {showTrailer && featuredGame.trailerUrl && (
                   <HlsVideoPlayer 
@@ -376,11 +380,11 @@ export default function HomePage() {
                   />
                 )}
 
-                <button className="banner-arrow left" onClick={() => setCurrentBannerIndex(prev => (prev === 0 ? featuredGamesList.length - 1 : prev - 1))}>
+                <button className="banner-arrow left" onClick={(e) => { e.stopPropagation(); setCurrentBannerIndex(prev => (prev === 0 ? featuredGamesList.length - 1 : prev - 1)); }}>
                   <ChevronLeft size={32} />
                 </button>
                 
-                <div className={`hero-overlay ${showTrailer ? 'hidden' : ''}`}>
+                <div className={`hero-overlay ${!overlayVisible ? 'hidden' : ''}`}>
                   <div className="hero-content">
                     <span className="hero-badge">EM DESTAQUE</span>
                     <h1 className="hero-title">{featuredGame.title}</h1>
@@ -388,11 +392,11 @@ export default function HomePage() {
                     <div className="hero-actions">
                       <button 
                         className="hero-play-btn" 
-                        onClick={() => openGame(featuredGame)}
+                        onClick={(e) => { e.stopPropagation(); openGame(featuredGame); }}
                       >
                         JOGAR AGORA
                       </button>
-                      <button className="hero-more-btn">
+                      <button className="hero-more-btn" onClick={(e) => e.stopPropagation()}>
                         <MoreHorizontal size={20} />
                       </button>
                     </div>
@@ -403,13 +407,13 @@ export default function HomePage() {
                       <div 
                         key={idx} 
                         className={`dot ${idx === currentBannerIndex ? 'active' : ''}`}
-                        onClick={() => setCurrentBannerIndex(idx)}
+                        onClick={(e) => { e.stopPropagation(); setCurrentBannerIndex(idx); }}
                       />
                     ))}
                   </div>
                 </div>
 
-                <button className="banner-arrow right" onClick={() => setCurrentBannerIndex(prev => (prev === featuredGamesList.length - 1 ? 0 : prev + 1))}>
+                <button className="banner-arrow right" onClick={(e) => { e.stopPropagation(); setCurrentBannerIndex(prev => (prev === featuredGamesList.length - 1 ? 0 : prev + 1)); }}>
                   <ChevronRight size={32} />
                 </button>
               </section>
