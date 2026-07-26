@@ -16,7 +16,7 @@ const fail = (response: VercelResponse, status: number, message: string) => {
 };
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  const rawUrl = typeof request.query.url === "string" ? request.query.url : undefined;
+  const rawUrl = typeof request.query?.url === "string" ? request.query.url : undefined;
   if (!rawUrl) return fail(response, 400, "Link do instalador ausente.");
 
   let sourceUrl: URL;
@@ -34,7 +34,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (isDownloadHost(finalUrl.hostname)) return response.redirect(302, finalUrl.toString());
 
     const page = (await upstream.text()).replaceAll("\\/", "/").replaceAll("&amp;", "&");
-    const directLink = page.match(/https?:\\/\\/download[^"'<>\\s]+\\.mediafire\\.com\\/[^"'<>\\s]+/i)?.[0];
+    const directLink = page.match(/https?:\/\/download[^"'<>\s]+\.mediafire\.com\/[^"'<>\s]+/i)?.[0];
     if (!directLink) return fail(response, 502, "Não foi possível resolver o download no MediaFire.");
 
     const downloadUrl = new URL(directLink);
