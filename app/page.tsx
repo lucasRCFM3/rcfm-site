@@ -235,10 +235,16 @@ export default function HomePage() {
           ? "Nenhum"
           : undefined;
 
-    return [...gameGroups]
-      .filter(({ versions }) => versions.some((game) =>
-        (!text || `${game.title} ${game.genres ?? ""}`.toLocaleLowerCase("pt-BR").includes(text))
-        && matchesFilter(game, filter)))
+    return gameGroups
+      .map(({ identity, versions }) => ({
+        identity,
+        // O resumo e o card devem considerar exatamente as versões que o filtro permite.
+        // Assim, trocar o filtro nunca deixa o tamanho total de outro tipo de jogo no título.
+        versions: versions.filter((game) =>
+          (!text || `${game.title} ${game.genres ?? ""}`.toLocaleLowerCase("pt-BR").includes(text))
+          && matchesFilter(game, filter)),
+      }))
+      .filter(({ versions }) => versions.length > 0)
       .sort((left, right) => {
         const leftGame = left.versions[0];
         const rightGame = right.versions[0];
@@ -253,7 +259,14 @@ export default function HomePage() {
       });
   }, [gameGroups, query, filter, sort]);
 
-  const latestGames = gameGroups.map(({ versions }) => versions[0]);
+  const visibleCatalogSummary = useMemo(() => visibleGroups.reduce(
+    (summary, { versions }) => ({
+      itemCount: summary.itemCount + 1,
+      totalSizeBytes: summary.totalSizeBytes + (versions[0].sizeBytes || 0),
+    }),
+    { itemCount: 0, totalSizeBytes: 0 },
+  ), [visibleGroups]);
+
   const openGame = (game: Game) => {
     const path = gameRoutePath(game);
     if (currentRoutePath() !== path) {
@@ -443,9 +456,7 @@ export default function HomePage() {
             <header className="catalog-header">
               <div className="catalog-title">
                 <h1>
-                  JOGOS ({gameGroups.length}) - {formatBytes(
-                    latestGames.reduce((total, game) => total + (game.sizeBytes || 0), 0),
-                  )}
+                  JOGOS ({visibleCatalogSummary.itemCount}) - {formatBytes(visibleCatalogSummary.totalSizeBytes)}
                 </h1>
                 <div />
               </div>
